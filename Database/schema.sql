@@ -4,8 +4,8 @@ COLLATE utf8mb4_unicode_ci;
 
 USE supermarket_db;
 
-DROP TABLE IF EXISTS supplier;
 --供应商表
+DROP TABLE IF EXISTS supplier;
 CREATE TABLE supplier(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '供应商编号',
     name VARCHAR(100) NOT NULL COMMENT '供应商名称',
@@ -79,7 +79,7 @@ CREATE TABLE member(
     phone VARCHAR(20) NOT NULL COMMENT '会员电话',
     email VARCHAR(100) COMMENT '会员邮箱',
     points INT NOT NULL DEFAULT 0 COMMENT '积分',
-    level TINYINT NOT FULL DEFAULT 1 COMMENT '会员等级(1-普通, 2-银卡, 3-金卡, 4-钻石)',
+    level TINYINT NOT NULL DEFAULT 1 COMMENT '会员等级(1-普通, 2-银卡, 3-金卡, 4-钻石)',
     register_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '注册时间',
     remark VARCHAR(500) COMMENT '备注',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否逻辑删除(0-正常, 1-已注销)',
@@ -97,9 +97,9 @@ CREATE TABLE member(
 DROP TABLE IF EXISTS purchase_main;
 CREATE TABLE purchase_main(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '内部主键',
-    order_no VARCHAR(50) PRIMARY KEY COMMENT '采购清单号(格式:PO-YYYYMMDD-XXX)',
+    order_no VARCHAR(50) NOT NULL COMMENT '采购清单号(格式:PO-YYYYMMDD-XXX)',
     employee_id INT NOT NULL COMMENT '采购员编号',
-    total_quantity INT NOT FULL DEFAULT 0 COMMENT '采购总数量',
+    total_quantity INT NOT NULL DEFAULT 0 COMMENT '采购总数量',
     total_price DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '采购总价',
     purchase_time DATETIME NOT NULL COMMENT '采购时间',
     remark VARCHAR(500) COMMENT '备注',
@@ -136,7 +136,7 @@ CREATE TABLE purchase_detail(
 
     CONSTRAINT fk_detail_main
         FOREIGN KEY(purchase_main_id) REFERENCES purchase_main(id) 
-        ON DELETE CASCADE,
+        ON DELETE CASCADE
         ON UPDATE CASCADE,
     
     CONSTRAINT fk_detail_goods
