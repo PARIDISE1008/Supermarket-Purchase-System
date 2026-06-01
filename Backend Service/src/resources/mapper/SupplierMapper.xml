@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.SupplierMapper">
+
+    <!-- 结果映射 -->
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.Supplier">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="short_name" property="shortName"/>
+        <result column="address" property="address"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="contact_person" property="contactPerson"/>
+        <result column="contact_phone" property="contactPhone"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 新增 -->
+    <insert id="insert" parameterType="com.supermarket.entity.Supplier" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO supplier (name, short_name, address, phone, email, 
+                              contact_person, contact_phone, remark)
+        VALUES (#{name}, #{shortName}, #{address}, #{phone}, #{email},
+                #{contactPerson}, #{contactPhone}, #{remark})
+    </insert>
+
+    <!-- 批量新增 -->
+    <insert id="batchInsert" parameterType="java.util.List" 
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO supplier (name, short_name, address, phone, email, 
+                              contact_person, contact_phone, remark)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.shortName}, #{item.address}, #{item.phone}, 
+             #{item.email}, #{item.contactPerson}, #{item.contactPhone}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM supplier WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <!-- 根据电话查询 -->
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT * FROM supplier WHERE phone = #{phone} AND is_deleted = 0
+    </select>
+
+    <!-- 分页查询 -->
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT * FROM supplier 
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计总数 -->
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM supplier 
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+    </select>
+
+    <!-- 修改 -->
+    <update id="update" parameterType="com.supermarket.entity.Supplier">
+        UPDATE supplier 
+        SET name = #{name},
+            short_name = #{shortName},
+            address = #{address},
+            phone = #{phone},
+            email = #{email},
+            contact_person = #{contactPerson},
+            contact_phone = #{contactPhone},
+            remark = #{remark}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 逻辑删除 -->
+    <update id="deleteById">
+        UPDATE supplier SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <!-- 统计关联商品数量 -->
+    <select id="countGoodsBySupplierId" resultType="int">
+        SELECT COUNT(*) FROM goods 
+        WHERE supplier_id = #{supplierId} AND is_deleted = 0
+    </select>
+
+</mapper>
