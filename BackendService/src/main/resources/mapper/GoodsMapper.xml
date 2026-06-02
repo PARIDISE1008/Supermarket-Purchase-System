@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.GoodsMapper">
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.Goods">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="price" property="price"/>
+        <result column="supplier_id" property="supplierId"/>
+        <result column="description" property="description"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="supplier_name" property="supplierName"/>
+    </resultMap>
+    
+    <insert id="insert" parameterType="com.supermarket.entity.Goods" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO goods (name, price, supplier_id, description, remark)
+        VALUES (#{name}, #{price}, #{supplierId}, #{description}, #{remark})
+    </insert>
+    
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO goods (name, price, supplier_id, description, remark) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.price}, #{item.supplierId},
+             #{item.description}, #{item.remark})
+        </foreach>
+    </insert>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT g.*, s.name AS supplier_name
+        FROM goods g
+        LEFT JOIN supplier s ON g.supplier_id = s.id
+        WHERE g.id = #{id} AND g.is_deleted = 0
+    </select>
+    
+    <select id="selectBySupplierAndName" resultMap="BaseResultMap">
+        SELECT * FROM goods
+        WHERE supplier_id = #{supplierId} AND name = #{name} AND is_deleted = 0
+    </select>
+    
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT g.*, s.name AS supplier_name
+        FROM goods g
+        LEFT JOIN supplier s ON g.supplier_id = s.id
+        WHERE g.is_deleted = 0
+        <if test="name != null and name != ''">
+            AND g.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="supplierId != null">
+            AND g.supplier_id = #{supplierId}
+        </if>
+        ORDER BY g.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM goods
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="supplierId != null">
+            AND supplier_id = #{supplierId}
+        </if>
+    </select>
+    
+    <update id="update" parameterType="com.supermarket.entity.Goods">
+        UPDATE goods
+        SET name = #{name},
+            price = #{price},
+            supplier_id = #{supplierId},
+            description = #{description},
+            remark = #{remark}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+    
+    <update id="deleteById">
+        UPDATE goods SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+    </update>
+    
+    <select id="countPurchaseDetailByGoodsId" resultType="int">
+        SELECT COUNT(*) FROM purchase_detail pd
+        JOIN purchase_main pm ON pd.purchase_main_id = pm.id
+        WHERE pd.goods_id = #{goodsId}
+    </select>
+</mapper>
