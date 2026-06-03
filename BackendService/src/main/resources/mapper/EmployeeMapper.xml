@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.EmployeeMapper">
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.Employee">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="password" property="password"/>
+        <result column="level" property="level"/>
+        <result column="phone" property="phone"/>
+        <result column="salary" property="salary"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+    
+    <insert id="insert" parameterType="com.supermarket.entity.Employee" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO employee (name, password, level, phone, salary, remark)
+        VALUES (#{name}, #{password}, #{level}, #{phone}, #{salary}, #{remark})
+    </insert>
+    
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO employee (name, password, level, phone, salary, remark) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.password}, #{item.level},
+             #{item.phone}, #{item.salary}, #{item.remark})
+        </foreach>
+    </insert>
+    
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM employee WHERE id = #{id} AND is_deleted = 0
+    </select>
+    
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT * FROM employee WHERE phone = #{phone} AND is_deleted = 0
+    </select>
+    
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT * FROM employee
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="level != null">
+            AND level = #{level}
+        </if>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+    
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM employee
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="level != null">
+            AND level = #{level}
+        </if>
+    </select>
+    
+    <update id="update" parameterType="com.supermarket.entity.Employee">
+        UPDATE employee
+        SET name = #{name},
+            level = #{level},
+            phone = #{phone},
+            salary = #{salary},
+            remark = #{remark}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+    
+    <update id="deleteById">
+        UPDATE employee SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+    </update>
+    
+    <select id="countPurchaseByEmployeeId" resultType="int">
+        SELECT COUNT(*) FROM purchase_main WHERE employee_id = #{employeeId}
+    </select>
+</mapper>
