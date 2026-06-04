@@ -1,4 +1,4 @@
-USE supermarket_db;
+miUSE supermarket_db;
 
 -- ==================== 供应商 ====================
 INSERT INTO supplier (name, short_name, address, phone, email, contact_person, contact_phone, remark) VALUES

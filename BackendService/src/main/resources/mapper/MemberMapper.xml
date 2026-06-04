@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.MemberMapper">
+
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.Member">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="points" property="points"/>
+        <result column="level" property="level"/>
+        <result column="register_time" property="registerTime"/>
+        <result column="remark" property="remark"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.supermarket.entity.Member"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO member (name, phone, email, points, level, register_time, remark)
+        VALUES (#{name}, #{phone}, #{email}, #{points}, #{level},
+                #{registerTime}, #{remark})
+    </insert>
+
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO member (name, phone, email, points, level, register_time, remark) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.name}, #{item.phone}, #{item.email}, #{item.points},
+             #{item.level}, #{item.registerTime}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT * FROM member WHERE id = #{id} AND is_deleted = 0
+    </select>
+
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT * FROM member WHERE phone = #{phone} AND is_deleted = 0
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT * FROM member
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="level != null">
+            AND level = #{level}
+        </if>
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM member
+        WHERE is_deleted = 0
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="level != null">
+            AND level = #{level}
+        </if>
+    </select>
+
+    <update id="update" parameterType="com.supermarket.entity.Member">
+        UPDATE member
+        SET name = #{name},
+            phone = #{phone},
+            email = #{email},
+            points = #{points},
+            level = #{level},
+            remark = #{remark}
+        WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+    <update id="deleteById">
+        UPDATE member SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+    </update>
+
+</mapper>
