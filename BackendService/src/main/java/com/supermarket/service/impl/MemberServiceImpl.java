@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import com.supermarket.service.MemberService;
 @Service
 public class MemberServiceImpl implements MemberService {
 
+    private static final Logger log = LoggerFactory.getLogger(MemberServiceImpl.class);
+
     private final MemberMapper memberMapper;
 
     public MemberServiceImpl(MemberMapper memberMapper) {
@@ -26,13 +30,12 @@ public class MemberServiceImpl implements MemberService {
     public void add(Member member) {
         validateMember(member);
 
-        // 电话查重
         Member existing = memberMapper.selectByPhone(member.getPhone());
         if (existing != null) {
+            log.warn("[新增会员失败] 电话重复 phone={}", member.getPhone());
             throw BusinessException.duplicate("会员电话");
         }
 
-        // 默认值
         if (member.getPoints() == null) {
             member.setPoints(0);
         }
@@ -45,18 +48,22 @@ public class MemberServiceImpl implements MemberService {
 
         int rows = memberMapper.insert(member);
         if (rows == 0) {
+            log.error("[新增会员失败] 数据库插入返回0 name={}", member.getName());
             throw BusinessException.operationFailed("新增会员失败");
         }
 
-        System.out.println("新增会员成功，ID=" + member.getId());
+        log.info("[新增会员成功] id={}, name={}, level={}", member.getId(), member.getName(), member.getLevel());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Member> members) {
         if (members == null || members.isEmpty()) {
+            log.warn("[批量导入会员失败] 数据为空");
             throw BusinessException.paramError("导入数据不能为空");
         }
+
+        log.info("[批量导入会员开始] 总数={}", members.size());
 
         List<String> errors = new ArrayList<>();
         for (int i = 0; i < members.size(); i++) {
@@ -68,28 +75,28 @@ public class MemberServiceImpl implements MemberService {
         }
 
         if (!errors.isEmpty()) {
+            log.warn("[批量导入会员失败] 校验不通过 errors={}", errors);
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
         }
 
-        // 检查内部重复电话
         for (int i = 0; i < members.size(); i++) {
             for (int j = i + 1; j < members.size(); j++) {
                 if (members.get(i).getPhone().equals(members.get(j).getPhone())) {
+                    log.warn("[批量导入会员失败] 内部电话重复 行{}和行{}", i + 1, j + 1);
                     throw BusinessException.paramError(
                             String.format("第%d行和第%d行电话重复", i + 1, j + 1));
                 }
             }
         }
 
-        // 检查数据库重复电话
         for (Member member : members) {
             Member existing = memberMapper.selectByPhone(member.getPhone());
             if (existing != null) {
+                log.warn("[批量导入会员失败] 电话已存在 phone={}", member.getPhone());
                 throw BusinessException.duplicate("电话 " + member.getPhone());
             }
         }
 
-        // 填充默认值
         LocalDateTime now = LocalDateTime.now();
         for (Member member : members) {
             if (member.getPoints() == null) {
@@ -103,8 +110,13 @@ public class MemberServiceImpl implements MemberService {
             }
         }
 
-        memberMapper.batchInsert(members);
-        System.out.println("批量导入会员成功，共" + members.size() + "条");
+        try {
+            memberMapper.batchInsert(members);
+            log.info("[批量导入会员成功] 共{}条", members.size());
+        } catch (Exception e) {
+            log.error("[批量导入会员失败] 数据库异常，事务已回滚", e);
+            throw new BusinessException("批量导入失败，数据已回滚");
+        }
     }
 
     @Override
@@ -120,17 +132,20 @@ public class MemberServiceImpl implements MemberService {
         List<Member> list = memberMapper.selectPage(name, level, offset, size);
         int total = memberMapper.count(name, level);
 
+        log.debug("[查询会员] name={}, level={}, page={}, total={}", name, level, page, total);
         return Result.success("查询成功", list, total);
     }
 
     @Override
     public Member getById(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[查询会员失败] 非法ID id={}", id);
             throw BusinessException.paramError("会员ID不合法");
         }
 
         Member member = memberMapper.selectById(id);
         if (member == null) {
+            log.warn("[查询会员失败] 不存在 id={}", id);
             throw BusinessException.notFound("会员");
         }
 
@@ -140,47 +155,52 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void update(Member member) {
         if (member.getId() == null || member.getId() <= 0) {
+            log.warn("[修改会员失败] 非法ID id={}", member.getId());
             throw BusinessException.paramError("会员ID不合法");
         }
         validateMember(member);
 
         Member existing = memberMapper.selectById(member.getId());
         if (existing == null) {
+            log.warn("[修改会员失败] 不存在 id={}", member.getId());
             throw BusinessException.notFound("会员");
         }
 
-        // 电话查重（排除自己）
         Member phoneExists = memberMapper.selectByPhone(member.getPhone());
         if (phoneExists != null && !phoneExists.getId().equals(member.getId())) {
+            log.warn("[修改会员失败] 电话重复 id={}, phone={}", member.getId(), member.getPhone());
             throw BusinessException.duplicate("会员电话");
         }
 
         int rows = memberMapper.update(member);
         if (rows == 0) {
+            log.error("[修改会员失败] 数据库更新返回0 id={}", member.getId());
             throw BusinessException.operationFailed("修改会员失败");
         }
 
-        System.out.println("修改会员成功，ID=" + member.getId());
+        log.info("[修改会员成功] id={}, name={}", member.getId(), member.getName());
     }
 
     @Override
     public void delete(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[删除会员失败] 非法ID id={}", id);
             throw BusinessException.paramError("会员ID不合法");
         }
 
         Member member = memberMapper.selectById(id);
         if (member == null) {
+            log.warn("[删除会员失败] 不存在 id={}", id);
             throw BusinessException.notFound("会员");
         }
 
-        // 会员无外键依赖，可以直接逻辑删除
         int rows = memberMapper.deleteById(id);
         if (rows == 0) {
+            log.error("[删除会员失败] 数据库更新返回0 id={}", id);
             throw BusinessException.operationFailed("删除会员失败");
         }
 
-        System.out.println("删除会员成功（已标记注销），ID=" + id);
+        log.info("[删除会员成功] id={}, name={}（已标记注销）", id, member.getName());
     }
 
     private void validateMember(Member member) {

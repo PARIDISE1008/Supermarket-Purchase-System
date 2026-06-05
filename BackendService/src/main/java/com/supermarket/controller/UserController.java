@@ -1,19 +1,17 @@
+// ============================================
+// 路径: com/supermarket/controller/UserController.java
+// ============================================
 package com.supermarket.controller;
-
-import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.supermarket.common.Result;
 import com.supermarket.entity.Employee;
 import com.supermarket.entity.Goods;
 import com.supermarket.service.EmployeeService;
 import com.supermarket.service.GoodsService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * 普通用户控制器 登录后的员工可以查看自己的信息和公共数据

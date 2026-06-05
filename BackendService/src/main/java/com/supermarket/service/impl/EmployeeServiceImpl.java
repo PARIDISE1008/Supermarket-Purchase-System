@@ -3,6 +3,8 @@ package com.supermarket.service.impl;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import com.supermarket.util.PasswordUtil;
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
 
+    private static final Logger log = LoggerFactory.getLogger(EmployeeServiceImpl.class);
+
     private final EmployeeMapper employeeMapper;
 
     public EmployeeServiceImpl(EmployeeMapper employeeMapper) {
@@ -26,39 +30,41 @@ public class EmployeeServiceImpl implements EmployeeService {
     public void add(Employee employee) {
         validateEmployee(employee);
 
-        // 电话查重
         if (employee.getPhone() != null && !employee.getPhone().isEmpty()) {
             Employee existing = employeeMapper.selectByPhone(employee.getPhone());
             if (existing != null) {
+                log.warn("[新增员工失败] 电话重复 phone={}", employee.getPhone());
                 throw BusinessException.duplicate("员工电话");
             }
         }
 
-        // 密码默认 123456，加密存储
         if (employee.getPassword() == null || employee.getPassword().isEmpty()) {
             employee.setPassword("123456");
         }
         employee.setPassword(PasswordUtil.encode(employee.getPassword()));
 
-        // 级别默认 1
         if (employee.getLevel() == null) {
             employee.setLevel(1);
         }
 
         int rows = employeeMapper.insert(employee);
         if (rows == 0) {
+            log.error("[新增员工失败] 数据库插入返回0 name={}", employee.getName());
             throw BusinessException.operationFailed("新增员工失败");
         }
 
-        System.out.println("新增员工成功，ID=" + employee.getId());
+        log.info("[新增员工成功] id={}, name={}, level={}", employee.getId(), employee.getName(), employee.getLevel());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Employee> employees) {
         if (employees == null || employees.isEmpty()) {
+            log.warn("[批量导入员工失败] 数据为空");
             throw BusinessException.paramError("导入数据不能为空");
         }
+
+        log.info("[批量导入员工开始] 总数={}", employees.size());
 
         List<String> errors = new ArrayList<>();
         for (int i = 0; i < employees.size(); i++) {
@@ -70,10 +76,10 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         if (!errors.isEmpty()) {
+            log.warn("[批量导入员工失败] 校验不通过 errors={}", errors);
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
         }
 
-        // 统一加密密码
         for (Employee emp : employees) {
             if (emp.getPassword() == null || emp.getPassword().isEmpty()) {
                 emp.setPassword("123456");
@@ -84,39 +90,49 @@ public class EmployeeServiceImpl implements EmployeeService {
             }
         }
 
-        employeeMapper.batchInsert(employees);
-        System.out.println("批量导入员工成功，共" + employees.size() + "条");
+        try {
+            employeeMapper.batchInsert(employees);
+            log.info("[批量导入员工成功] 共{}条", employees.size());
+        } catch (Exception e) {
+            log.error("[批量导入员工失败] 数据库异常，事务已回滚", e);
+            throw new BusinessException("批量导入失败，数据已回滚");
+        }
     }
 
     @Override
     public Result<List<Employee>> search(String name, Integer level, Integer page, Integer size) {
-        if (page == null || page < 1) page = 1;
-        if (size == null || size < 1) size = 10;
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (size == null || size < 1) {
+            size = 10;
+        }
 
         int offset = (page - 1) * size;
         List<Employee> list = employeeMapper.selectPage(name, level, offset, size);
         int total = employeeMapper.count(name, level);
 
-        // 返回前清空密码字段，安全考虑
         for (Employee emp : list) {
             emp.setPassword(null);
         }
 
+        log.debug("[查询员工] name={}, level={}, page={}, total={}", name, level, page, total);
         return Result.success("查询成功", list, total);
     }
 
     @Override
     public Employee getById(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[查询员工失败] 非法ID id={}", id);
             throw BusinessException.paramError("员工ID不合法");
         }
 
         Employee employee = employeeMapper.selectById(id);
         if (employee == null) {
+            log.warn("[查询员工失败] 不存在 id={}", id);
             throw BusinessException.notFound("员工");
         }
 
-        // 不返回密码
         employee.setPassword(null);
         return employee;
     }
@@ -124,78 +140,87 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public void update(Employee employee) {
         if (employee.getId() == null || employee.getId() <= 0) {
+            log.warn("[修改员工失败] 非法ID id={}", employee.getId());
             throw BusinessException.paramError("员工ID不合法");
         }
         validateEmployee(employee);
 
         Employee existing = employeeMapper.selectById(employee.getId());
         if (existing == null) {
+            log.warn("[修改员工失败] 不存在 id={}", employee.getId());
             throw BusinessException.notFound("员工");
         }
 
-        // 电话查重（排除自己）
         if (employee.getPhone() != null && !employee.getPhone().isEmpty()) {
             Employee phoneExists = employeeMapper.selectByPhone(employee.getPhone());
             if (phoneExists != null && !phoneExists.getId().equals(employee.getId())) {
+                log.warn("[修改员工失败] 电话重复 id={}, phone={}", employee.getId(), employee.getPhone());
                 throw BusinessException.duplicate("员工电话");
             }
         }
 
         int rows = employeeMapper.update(employee);
         if (rows == 0) {
+            log.error("[修改员工失败] 数据库更新返回0 id={}", employee.getId());
             throw BusinessException.operationFailed("修改员工失败");
         }
 
-        System.out.println("修改员工成功，ID=" + employee.getId());
+        log.info("[修改员工成功] id={}, name={}", employee.getId(), employee.getName());
     }
 
     @Override
     public void delete(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[删除员工失败] 非法ID id={}", id);
             throw BusinessException.paramError("员工ID不合法");
         }
 
         Employee employee = employeeMapper.selectById(id);
         if (employee == null) {
+            log.warn("[删除员工失败] 不存在 id={}", id);
             throw BusinessException.notFound("员工");
         }
 
-        // 检查是否有采购记录
         int purchaseCount = employeeMapper.countPurchaseByEmployeeId(id);
         if (purchaseCount > 0) {
+            log.warn("[删除员工失败] 存在采购记录 id={}, purchaseCount={}", id, purchaseCount);
             throw new BusinessException(
-                String.format("该员工有%d条采购记录，无法删除（可标记为离职）", purchaseCount));
+                    String.format("该员工有%d条采购记录，无法删除", purchaseCount));
         }
 
         int rows = employeeMapper.deleteById(id);
         if (rows == 0) {
+            log.error("[删除员工失败] 数据库更新返回0 id={}", id);
             throw BusinessException.operationFailed("删除员工失败");
         }
 
-        System.out.println("删除员工成功（已标记离职），ID=" + id);
+        log.info("[删除员工成功] id={}, name={}（已标记离职）", id, employee.getName());
     }
 
     @Override
     public Employee login(String phone, String password) {
         if (phone == null || phone.isEmpty()) {
+            log.warn("[登录失败] 手机号为空");
             throw BusinessException.paramError("手机号不能为空");
         }
         if (password == null || password.isEmpty()) {
+            log.warn("[登录失败] 密码为空 phone={}", phone);
             throw BusinessException.paramError("密码不能为空");
         }
 
         Employee employee = employeeMapper.selectByPhone(phone);
         if (employee == null) {
+            log.warn("[登录失败] 账号不存在 phone={}", phone);
             throw new BusinessException("账号不存在");
         }
 
         if (!PasswordUtil.matches(password, employee.getPassword())) {
+            log.warn("[登录失败] 密码错误 phone={}", phone);
             throw new BusinessException("密码错误");
         }
 
-        // 不返回密码
         employee.setPassword(null);
-        System.out.println("员工登录成功：" + employee.getName());
+        log.info("[登录成功] id={}, name={}", employee.getId(), employee.getName());
         return employee;
     }
 
@@ -210,7 +235,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw BusinessException.paramError("员工姓名长度不能超过50");
         }
         if (employee.getPhone() != null && !employee.getPhone().isEmpty()
-            && !employee.getPhone().matches("^1[3-9]\\d{9}$")) {
+                && !employee.getPhone().matches("^1[3-9]\\d{9}$")) {
             throw BusinessException.paramError("手机号格式不正确");
         }
         if (employee.getSalary() != null && employee.getSalary().compareTo(java.math.BigDecimal.ZERO) < 0) {

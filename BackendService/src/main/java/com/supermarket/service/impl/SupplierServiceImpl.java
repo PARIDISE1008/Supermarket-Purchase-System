@@ -1,18 +1,23 @@
 package com.supermarket.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.supermarket.common.Result;
 import com.supermarket.entity.Supplier;
 import com.supermarket.exception.BusinessException;
 import com.supermarket.mapper.SupplierMapper;
 import com.supermarket.service.SupplierService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 public class SupplierServiceImpl implements SupplierService {
+
+    private static final Logger log = LoggerFactory.getLogger(SupplierServiceImpl.class);
 
     private final SupplierMapper supplierMapper;
 
@@ -23,23 +28,32 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     public void add(Supplier supplier) {
         validateSupplier(supplier);
+
         Supplier existing = supplierMapper.selectByPhone(supplier.getPhone());
         if (existing != null) {
+            log.warn("[新增供应商失败] 电话重复 phone={}", supplier.getPhone());
             throw BusinessException.duplicate("供应商电话");
         }
+
         int rows = supplierMapper.insert(supplier);
         if (rows == 0) {
+            log.error("[新增供应商失败] 数据库插入返回0 name={}", supplier.getName());
             throw BusinessException.operationFailed("新增供应商失败");
         }
-        System.out.println("新增供应商成功，ID=" + supplier.getId());
+
+        log.info("[新增供应商成功] id={}, name={}", supplier.getId(), supplier.getName());
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Supplier> suppliers) {
         if (suppliers == null || suppliers.isEmpty()) {
+            log.warn("[批量导入失败] 数据为空");
             throw BusinessException.paramError("导入数据不能为空");
         }
+
+        log.info("[批量导入开始] 总数={}", suppliers.size());
+
         List<String> errors = new ArrayList<>();
         for (int i = 0; i < suppliers.size(); i++) {
             try {
@@ -48,89 +62,128 @@ public class SupplierServiceImpl implements SupplierService {
                 errors.add(String.format("第%d行: %s", i + 1, e.getMessage()));
             }
         }
+
         if (!errors.isEmpty()) {
+            log.warn("[批量导入失败] 校验不通过 errors={}", errors);
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
         }
+
         for (int i = 0; i < suppliers.size(); i++) {
             for (int j = i + 1; j < suppliers.size(); j++) {
                 if (suppliers.get(i).getPhone().equals(suppliers.get(j).getPhone())) {
+                    log.warn("[批量导入失败] 内部电话重复 行{}和行{}", i + 1, j + 1);
                     throw BusinessException.paramError(
-                        String.format("第%d行和第%d行电话重复", i + 1, j + 1));
+                            String.format("第%d行和第%d行电话重复", i + 1, j + 1));
                 }
             }
         }
+
         for (Supplier supplier : suppliers) {
             Supplier existing = supplierMapper.selectByPhone(supplier.getPhone());
             if (existing != null) {
+                log.warn("[批量导入失败] 电话已存在 phone={}", supplier.getPhone());
                 throw BusinessException.duplicate("电话 " + supplier.getPhone());
             }
         }
-        supplierMapper.batchInsert(suppliers);
-        System.out.println("批量导入供应商成功，共" + suppliers.size() + "条");
+
+        try {
+            supplierMapper.batchInsert(suppliers);
+            log.info("[批量导入成功] 共{}条", suppliers.size());
+        } catch (Exception e) {
+            log.error("[批量导入失败] 数据库异常，事务已回滚", e);
+            throw new BusinessException("批量导入失败，数据已回滚");
+        }
     }
 
     @Override
     public Result<List<Supplier>> search(String name, Integer page, Integer size) {
-        if (page == null || page < 1) page = 1;
-        if (size == null || size < 1) size = 10;
+        if (page == null || page < 1) {
+            page = 1;
+        }
+        if (size == null || size < 1) {
+            size = 10;
+        }
+
         int offset = (page - 1) * size;
         List<Supplier> list = supplierMapper.selectPage(name, offset, size);
         int total = supplierMapper.count(name);
+
+        log.debug("[查询供应商] name={}, page={}, size={}, total={}", name, page, size, total);
         return Result.success("查询成功", list, total);
     }
 
     @Override
     public Supplier getById(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[查询供应商失败] 非法ID id={}", id);
             throw BusinessException.paramError("供应商ID不合法");
         }
+
         Supplier supplier = supplierMapper.selectById(id);
         if (supplier == null) {
+            log.warn("[查询供应商失败] 不存在 id={}", id);
             throw BusinessException.notFound("供应商");
         }
+
         return supplier;
     }
 
     @Override
     public void update(Supplier supplier) {
         if (supplier.getId() == null || supplier.getId() <= 0) {
+            log.warn("[修改供应商失败] 非法ID id={}", supplier.getId());
             throw BusinessException.paramError("供应商ID不合法");
         }
         validateSupplier(supplier);
+
         Supplier existing = supplierMapper.selectById(supplier.getId());
         if (existing == null) {
+            log.warn("[修改供应商失败] 不存在 id={}", supplier.getId());
             throw BusinessException.notFound("供应商");
         }
+
         Supplier phoneExists = supplierMapper.selectByPhone(supplier.getPhone());
         if (phoneExists != null && !phoneExists.getId().equals(supplier.getId())) {
+            log.warn("[修改供应商失败] 电话重复 id={}, phone={}", supplier.getId(), supplier.getPhone());
             throw BusinessException.duplicate("供应商电话");
         }
+
         int rows = supplierMapper.update(supplier);
         if (rows == 0) {
+            log.error("[修改供应商失败] 数据库更新返回0 id={}", supplier.getId());
             throw BusinessException.operationFailed("修改供应商失败");
         }
-        System.out.println("修改供应商成功，ID=" + supplier.getId());
+
+        log.info("[修改供应商成功] id={}, name={}", supplier.getId(), supplier.getName());
     }
 
     @Override
     public void delete(Integer id) {
         if (id == null || id <= 0) {
+            log.warn("[删除供应商失败] 非法ID id={}", id);
             throw BusinessException.paramError("供应商ID不合法");
         }
+
         Supplier supplier = supplierMapper.selectById(id);
         if (supplier == null) {
+            log.warn("[删除供应商失败] 不存在 id={}", id);
             throw BusinessException.notFound("供应商");
         }
+
         int goodsCount = supplierMapper.countGoodsBySupplierId(id);
         if (goodsCount > 0) {
+            log.warn("[删除供应商失败] 存在关联商品 id={}, goodsCount={}", id, goodsCount);
             throw new BusinessException(
-                String.format("该供应商下还有%d件商品，请先处理商品后再删除", goodsCount));
+                    String.format("该供应商下还有%d件商品，请先处理商品后再删除", goodsCount));
         }
+
         int rows = supplierMapper.deleteById(id);
         if (rows == 0) {
+            log.error("[删除供应商失败] 数据库更新返回0 id={}", id);
             throw BusinessException.operationFailed("删除供应商失败");
         }
-        System.out.println("删除供应商成功，ID=" + id);
+
+        log.info("[删除供应商成功] id={}, name={}", id, supplier.getName());
     }
 
     private void validateSupplier(Supplier supplier) {
@@ -150,7 +203,7 @@ public class SupplierServiceImpl implements SupplierService {
             throw BusinessException.paramError("电话格式不正确");
         }
         if (supplier.getEmail() != null && !supplier.getEmail().isEmpty()
-            && !supplier.getEmail().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+                && !supplier.getEmail().matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
             throw BusinessException.paramError("邮箱格式不正确");
         }
         if (supplier.getRemark() != null && supplier.getRemark().length() > 500) {

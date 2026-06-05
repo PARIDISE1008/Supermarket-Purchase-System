@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.PurchaseDetailMapper">
+
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.PurchaseDetail">
+        <id column="id" property="id"/>
+        <result column="purchase_main_id" property="purchaseMainId"/>
+        <result column="goods_id" property="goodsId"/>
+        <result column="quantity" property="quantity"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="goods_name" property="goodsName"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.supermarket.entity.PurchaseDetail"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_detail (purchase_main_id, goods_id, quantity, unit_price, total_price, remark)
+        VALUES (#{purchaseMainId}, #{goodsId}, #{quantity}, #{unitPrice}, #{totalPrice}, #{remark})
+    </insert>
+
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_detail (purchase_main_id, goods_id, quantity, unit_price, total_price, remark) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.purchaseMainId}, #{item.goodsId}, #{item.quantity},
+             #{item.unitPrice}, #{item.totalPrice}, #{item.remark})
+        </foreach>
+    </insert>
+
+    <select id="selectByMainId" resultMap="BaseResultMap">
+        SELECT pd.*, g.name AS goods_name
+        FROM purchase_detail pd
+        LEFT JOIN goods g ON pd.goods_id = g.id
+        WHERE pd.purchase_main_id = #{purchaseMainId}
+    </select>
+
+    <delete id="deleteByMainId">
+        DELETE FROM purchase_detail WHERE purchase_main_id = #{purchaseMainId}
+    </delete>
+
+    <update id="update" parameterType="com.supermarket.entity.PurchaseDetail">
+        UPDATE purchase_detail
+        SET quantity = #{quantity}, total_price = #{totalPrice}
+        WHERE id = #{id}
+    </update>
+
+</mapper>

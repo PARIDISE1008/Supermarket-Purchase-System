@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.supermarket.mapper.PurchaseMainMapper">
+
+    <resultMap id="BaseResultMap" type="com.supermarket.entity.PurchaseMain">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="employee_id" property="employeeId"/>
+        <result column="total_quantity" property="totalQuantity"/>
+        <result column="total_price" property="totalPrice"/>
+        <result column="purchase_time" property="purchaseTime"/>
+        <result column="status" property="status"/>
+        <result column="deadline_time" property="deadlineTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="employee_name" property="employeeName"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.supermarket.entity.PurchaseMain"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_main (order_no, employee_id, total_quantity, total_price,
+                                   purchase_time, status, deadline_time, remark)
+        VALUES (#{orderNo}, #{employeeId}, #{totalQuantity}, #{totalPrice},
+                #{purchaseTime}, #{status}, #{deadlineTime}, #{remark})
+    </insert>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT pm.*, e.name AS employee_name
+        FROM purchase_main pm
+        LEFT JOIN employee e ON pm.employee_id = e.id
+        WHERE pm.id = #{id}
+    </select>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT * FROM purchase_main WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectTodayDraft" resultMap="BaseResultMap">
+        SELECT * FROM purchase_main
+        WHERE employee_id = #{employeeId}
+          AND purchase_time >= #{today}
+          AND status = 'DRAFT'
+        LIMIT 1
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT pm.*, e.name AS employee_name
+        FROM purchase_main pm
+        LEFT JOIN employee e ON pm.employee_id = e.id
+        WHERE 1=1
+        <if test="employeeId != null">
+            AND pm.employee_id = #{employeeId}
+        </if>
+        <if test="status != null and status != ''">
+            AND pm.status = #{status}
+        </if>
+        ORDER BY pm.id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM purchase_main
+        WHERE 1=1
+        <if test="employeeId != null">
+            AND employee_id = #{employeeId}
+        </if>
+        <if test="status != null and status != ''">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <update id="update" parameterType="com.supermarket.entity.PurchaseMain">
+        UPDATE purchase_main
+        SET total_quantity = #{totalQuantity},
+            total_price = #{totalPrice},
+            remark = #{remark}
+        WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <update id="updateStatus">
+        UPDATE purchase_main SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="cancel">
+        UPDATE purchase_main SET status = 'CANCELLED' WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
+    <update id="restore">
+        UPDATE purchase_main SET status = 'DRAFT' WHERE id = #{id} AND status = 'CANCELLED' AND deadline_time >= NOW()
+    </update>
+
+    <select id="selectExpiredDrafts" resultMap="BaseResultMap">
+        SELECT * FROM purchase_main
+        WHERE status = 'DRAFT' AND deadline_time IS NOT NULL AND deadline_time <![CDATA[ <= ]]> #{now}
+    </select>
+
+    <update id="batchUpdateToHistory">
+        UPDATE purchase_main SET status = 'HISTORY' WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <delete id="deleteCancelledExpired">
+        DELETE FROM purchase_main WHERE status = 'CANCELLED' AND deadline_time <![CDATA[ < ]]> #{now}
+    </delete>
+
+</mapper>

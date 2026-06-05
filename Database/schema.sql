@@ -19,7 +19,7 @@ CREATE TABLE supplier(
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否逻辑删除(0-正常, 1-已删除)',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    
+
     CONSTRAINT uq_supplier_phone UNIQUE KEY(phone),
     INDEX idx_supplier_name(name),
     INDEX idx_supplier_is_deleted(is_deleted)
@@ -37,7 +37,7 @@ CREATE TABLE goods(
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否逻辑删除(0-正常, 1-已删除)',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    
+
     CONSTRAINT uq_goods_supplier_name UNIQUE KEY(supplier_id, name),
     INDEX idx_goods_supplier(supplier_id),
     INDEX idx_goods_name(name),
@@ -55,7 +55,7 @@ DROP TABLE IF EXISTS employee;
 CREATE TABLE employee(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '员工编号',
     name VARCHAR(50) NOT NULL COMMENT '姓名',
-    password VARCHAR(255) NOT NULL DEFAULT '$2a$10$EixZaYVK1fsbw1ZfbX3OXe.P0jFGnVFSqOGqG6jQKq5zQYkDVGZxS' 
+    password VARCHAR(255) NOT NULL DEFAULT '$2a$10$EixZaYVK1fsbw1ZfbX3OXe.P0jFGnVFSqOGqG6jQKq5zQYkDVGZxS'
         COMMENT '密码(BCrypt加密, 默认密码123456)',
     level TINYINT DEFAULT 1 COMMENT '级别(1-普通员工, 2-管理员)',
     phone VARCHAR(20) COMMENT '电话',
@@ -102,15 +102,18 @@ CREATE TABLE purchase_main(
     total_quantity INT NOT NULL DEFAULT 0 COMMENT '采购总数量',
     total_price DECIMAL(12,2) NOT NULL DEFAULT 0.00 COMMENT '采购总价',
     purchase_time DATETIME NOT NULL COMMENT '采购时间',
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' COMMENT '状态: DRAFT(草稿), HISTORY(已截止), CANCELLED(已作废)',
+    deadline_time DATETIME COMMENT '截止时间',
     remark VARCHAR(500) COMMENT '备注',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
 
     CONSTRAINT uq_purchase_order_no UNIQUE KEY(order_no),
     INDEX idx_purchase_employee_time(employee_id, purchase_time),
+    INDEX idx_employee_date(employee_id, purchase_time),
     INDEX idx_purchase_employee(employee_id),
     INDEX idx_purchase_time(purchase_time),
-    
+
     CONSTRAINT fk_purchase_employee
         FOREIGN KEY(employee_id) REFERENCES employee(id)
         ON DELETE RESTRICT
@@ -127,7 +130,7 @@ CREATE TABLE purchase_detail(
     unit_price DECIMAL(10,2) NOT NULL COMMENT '商品单价(冗余，记录采购时价格)',
     total_price DECIMAL(12,2) NOT NULL COMMENT '商品总价(quantity * unit_price)',
     remark VARCHAR(500) COMMENT '备注',
-    
+
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
 
     INDEX idx_detail_main(purchase_main_id),
@@ -135,10 +138,10 @@ CREATE TABLE purchase_detail(
     INDEX idx_detail_main_goods(purchase_main_id, goods_id),
 
     CONSTRAINT fk_detail_main
-        FOREIGN KEY(purchase_main_id) REFERENCES purchase_main(id) 
+        FOREIGN KEY(purchase_main_id) REFERENCES purchase_main(id)
         ON DELETE CASCADE
         ON UPDATE CASCADE,
-    
+
     CONSTRAINT fk_detail_goods
         FOREIGN KEY(goods_id) REFERENCES goods(id)
         ON DELETE RESTRICT
