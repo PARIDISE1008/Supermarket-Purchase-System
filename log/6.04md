@@ -1,0 +1,142 @@
+# Day 4 - 2026-06-04
+
+## ✅ 今日完成
+
+### 1. 会员模块（Member CRUD）
+- Entity：Member.java
+- Mapper：MemberMapper.java + MemberMapper.xml
+- Service：MemberService.java + MemberServiceImpl.java
+- Controller：MemberController.java
+
+### 2. 普通用户查询模块（UserController）
+- GET /api/user/info — 查自己员工信息
+- GET /api/user/goods — 查所有商品
+- GET /api/user/goods/{id} — 查单个商品详情
+- 复用已有 EmployeeService、GoodsService，不新建 Service
+
+### 3. 全部基础 CRUD 模块完成
+- 供应商 ✅
+- 商品 ✅
+- 员工 ✅（含登录 + SHA-256 加密）
+- 会员 ✅
+- 普通用户查询 ✅
+
+## 🐛 遇到的问题
+
+### 问题1：会员模块和供应商模块高度相似，是否抽公共代码？
+- **现象**：validateXxx() 方法结构几乎一样
+- **决策**：不抽
+- **理由**：
+  - 每张表的字段不同，校验规则不同
+  - 抽取后代码反而难读（"这个校验到底验了哪些字段？"）
+  - 课设阶段 6 个模块，重复代码可接受
+  - Fail-fast 原则要求校验离数据越近越好，放在各自 Service 最清晰
+
+### 问题2：UserController 的采购查询还没实现
+- **原因**：采购模块还没写
+- **临时处理**：接口已预留，方法体先空着，采购模块完成后补充
+- **URL 规划**：GET /api/user/purchase?employeeId=3&page=1
+
+### 问题3：会员手机号正则和供应商不同
+- **供应商电话**：`^[0-9\\-]{7,20}$` — 固话+手机，允许横线
+- **会员电话**：`^1[3-9]\\d{9}$` — 严格11位手机号
+- **原因**：供应商可能是公司固话（0755-28780808），会员一定是个人手机
+- **这是正确的设计差异，不是不一致**
+
+## 📅 明日计划
+
+1. **采购模块**（核心，预计耗时最长）
+   - PurchaseMain + PurchaseDetail 实体类
+   - PurchaseCreateDTO（前端提交的数据结构）
+   - 两个 Mapper + XML
+   - PurchaseService（含 @Transactional、30秒防重复、采购单号生成）
+   - PurchaseController
+2. 补全 UserController 的采购查询接口
+3. 如果时间够，开始前端项目初始化
+
+## 📝 设计笔记
+
+### 为什么 UserController 不单独建 Service？
+- 普通用户的查询和管理员的查询本质是同一套逻辑
+- 区别只是：管理员可查所有，用户只能查自己
+- 复用 Service 时通过参数控制权限（employeeId）
+- 如果新建 UserService，会导致 Goods 查询逻辑写两遍，后续修改容易遗漏
+
+### 为什么会员表没有外键依赖？
+- 当前设计：会员独立存在，不被任何表引用
+- 如果以后加"销售模块"：sales_main 会引用 member(id)
+- 当前删除会员：直接逻辑删除即可，无需检查关联数据
+- 这是"最小化依赖"设计：没发生的需求不要预设计
+
+### 为什么会员等级用数字 1-4 而不是枚举？
+- 数据库层面：TINYINT 比 ENUM 性能好、移植性好
+- Java 层面：Integer 比 Enum 灵活，加等级不用改代码
+- 前端层面：用 map 转文字 {1:'普通',2:'银卡',3:'金卡',4:'钻石'}
+- 注释已写清楚每个数字的含义，团队协作不会误解
+
+### 普通用户查询为什么不用登录态？
+- 当前实现：前端传 employeeId 查信息
+- 这是课设简化版，没引入 JWT/Session
+- 真实项目：登录后签发 token，后端从 token 解析用户ID
+- 答辩时可以说明："当前为简化实现，生产环境会用 Spring Security + JWT"
+
+## 项目进度
+
+| 模块 | 后端 | 前端 | 测试 |
+|------|------|------|------|
+| 供应商 | ✅ | ⬜ | ✅ |
+| 商品 | ✅ | ⬜ | ✅ |
+| 员工 | ✅ | ⬜ | ✅ |
+| 会员 | ✅ | ⬜ | ✅ |
+| 普通用户查询 | ✅ | ⬜ | ⬜ |
+| 采购 | ⬜ | ⬜ | ⬜ |
+
+## 🔧 当前可用接口汇总
+
+### 供应商 /api/supplier
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/supplier | 新增 |
+| POST | /api/supplier/batch | 批量导入 |
+| GET | /api/supplier | 分页查询 |
+| GET | /api/supplier/{id} | 查单个 |
+| PUT | /api/supplier | 修改 |
+| DELETE | /api/supplier/{id} | 逻辑删除 |
+
+### 商品 /api/goods
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/goods | 新增 |
+| POST | /api/goods/batch | 批量导入 |
+| GET | /api/goods | 分页查询 |
+| GET | /api/goods/{id} | 查单个 |
+| PUT | /api/goods | 修改 |
+| DELETE | /api/goods/{id} | 逻辑删除 |
+
+### 员工 /api/employee
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/employee | 新增 |
+| POST | /api/employee/batch | 批量导入 |
+| GET | /api/employee | 分页查询 |
+| GET | /api/employee/{id} | 查单个 |
+| PUT | /api/employee | 修改 |
+| DELETE | /api/employee/{id} | 标记离职 |
+| POST | /api/employee/login | 登录 |
+
+### 会员 /api/member
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/member | 新增 |
+| POST | /api/member/batch | 批量导入 |
+| GET | /api/member | 分页查询 |
+| GET | /api/member/{id} | 查单个 |
+| PUT | /api/member | 修改 |
+| DELETE | /api/member/{id} | 标记注销 |
+
+### 普通用户 /api/user
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/user/info?employeeId=3 | 查自己信息 |
+| GET | /api/user/goods | 查所有商品 |
+| GET | /api/user/goods/{id} | 查商品详情 |
