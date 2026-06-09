@@ -2,7 +2,9 @@ package com.supermarket.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,10 +67,30 @@ public class MemberServiceImpl implements MemberService {
 
         log.info("[批量导入会员开始] 总数={}", members.size());
 
+        // 一遍循环完成：校验 + 内部查重 + 设默认值 + 收集电话
         List<String> errors = new ArrayList<>();
+        Set<String> phoneSet = new HashSet<>();
+        List<String> allPhones = new ArrayList<>();
+        LocalDateTime now = LocalDateTime.now();
+
         for (int i = 0; i < members.size(); i++) {
+            Member m = members.get(i);
             try {
-                validateMember(members.get(i));
+                validateMember(m);
+                if (!phoneSet.add(m.getPhone())) {
+                    errors.add(String.format("第%d行: 电话 %s 在导入数据中重复", i + 1, m.getPhone()));
+                }
+                allPhones.add(m.getPhone());
+
+                if (m.getPoints() == null) {
+                    m.setPoints(0);
+                }
+                if (m.getLevel() == null) {
+                    m.setLevel(1);
+                }
+                if (m.getRegisterTime() == null) {
+                    m.setRegisterTime(now);
+                }
             } catch (BusinessException e) {
                 errors.add(String.format("第%d行: %s", i + 1, e.getMessage()));
             }
@@ -79,35 +101,11 @@ public class MemberServiceImpl implements MemberService {
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
         }
 
-        for (int i = 0; i < members.size(); i++) {
-            for (int j = i + 1; j < members.size(); j++) {
-                if (members.get(i).getPhone().equals(members.get(j).getPhone())) {
-                    log.warn("[批量导入会员失败] 内部电话重复 行{}和行{}", i + 1, j + 1);
-                    throw BusinessException.paramError(
-                            String.format("第%d行和第%d行电话重复", i + 1, j + 1));
-                }
-            }
-        }
-
-        for (Member member : members) {
-            Member existing = memberMapper.selectByPhone(member.getPhone());
-            if (existing != null) {
-                log.warn("[批量导入会员失败] 电话已存在 phone={}", member.getPhone());
-                throw BusinessException.duplicate("电话 " + member.getPhone());
-            }
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        for (Member member : members) {
-            if (member.getPoints() == null) {
-                member.setPoints(0);
-            }
-            if (member.getLevel() == null) {
-                member.setLevel(1);
-            }
-            if (member.getRegisterTime() == null) {
-                member.setRegisterTime(now);
-            }
+        // 一次 IN 查询替代 N 次单查
+        List<Member> dbExists = memberMapper.selectByPhones(allPhones);
+        if (!dbExists.isEmpty()) {
+            log.warn("[批量导入会员失败] 电话已存在 phone={}", dbExists.get(0).getPhone());
+            throw BusinessException.duplicate("电话 " + dbExists.get(0).getPhone());
         }
 
         try {

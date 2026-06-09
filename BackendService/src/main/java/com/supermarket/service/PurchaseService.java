@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.supermarket.common.Result;
 import com.supermarket.dto.PurchaseSubmitDTO;
+import com.supermarket.entity.PurchaseDetail;
 import com.supermarket.entity.PurchaseMain;
 
 public interface PurchaseService {
@@ -29,6 +30,11 @@ public interface PurchaseService {
     Result<PurchaseMain> getDetail(Integer orderId);
 
     /**
+     * 查询订单的明细列表
+     */
+    Result<List<PurchaseDetail>> getDetails(Integer orderId);
+
+    /**
      * 作废订单（DRAFT → CANCELLED）
      */
     Result<Void> cancel(Integer orderId, Integer employeeId);
@@ -37,4 +43,9 @@ public interface PurchaseService {
      * 恢复订单（CANCELLED → DRAFT，截止前）
      */
     Result<Void> restore(Integer orderId, Integer employeeId);
+
+    /**
+     * 管理员核实订单（DRAFT → HISTORY，提前提交）
+     */
+    Result<Void> verify(Integer orderId, Integer adminId);
 }

@@ -80,4 +80,33 @@ public class EmployeeController {
         Employee employee = employeeService.login(phone, password);
         return Result.success("登录成功", employee);
     }
+
+    /** 用户自行注册 */
+    @PostMapping("/register")
+    public Result<Void> register(@Valid @RequestBody Employee employee) {
+        employeeService.register(employee);
+        return Result.success("注册成功，等待管理员审批", null);
+    }
+
+    /** 查询待审批员工 */
+    @GetMapping("/pending")
+    public Result<List<Employee>> getPending(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return employeeService.getPending(page, size);
+    }
+
+    /** 通过审批 */
+    @PutMapping("/approve/{id}")
+    public Result<Void> approve(@PathVariable Integer id) {
+        employeeService.approve(id);
+        return Result.success("审批通过", null);
+    }
+
+    /** 拒绝 */
+    @PutMapping("/reject/{id}")
+    public Result<Void> reject(@PathVariable Integer id) {
+        employeeService.reject(id);
+        return Result.success("已拒绝", null);
+    }
 }

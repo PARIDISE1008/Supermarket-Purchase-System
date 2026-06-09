@@ -28,4 +28,6 @@ public interface MemberMapper {
     int update(Member member);
 
     int deleteById(@Param("id") Integer id);
+
+    List<Member> selectByPhones(@Param("phones") List<String> phones);
 }

@@ -27,9 +27,9 @@ public class PurchaseScheduler {
     }
 
     /**
-     * 每天17:00执行 1. DRAFT → HISTORY 2. 删除过期的 CANCELLED 订单 3. 模拟通知供应商
+     * 每分钟轮询：DRAFT订单到期 → HISTORY + 清理过期作废订单
      */
-    @Scheduled(cron = "0 0 17 * * ?")
+    @Scheduled(cron = "0 * * * * ?")
     @Transactional(rollbackFor = Exception.class)
     public void deadlineTask() {
         log.info("[Deadline任务] 开始执行，时间={}", LocalDateTime.now());

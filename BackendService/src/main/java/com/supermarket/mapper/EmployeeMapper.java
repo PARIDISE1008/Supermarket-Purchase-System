@@ -31,4 +31,12 @@ public interface EmployeeMapper {
     int deleteById(@Param("id") Integer id);
 
     int countPurchaseByEmployeeId(@Param("employeeId") Integer employeeId);
+
+    List<Employee> selectPending(@Param("offset") Integer offset, @Param("limit") Integer limit);
+
+    int countPending();
+
+    int approve(@Param("id") Integer id);
+
+    int reject(@Param("id") Integer id);
 }

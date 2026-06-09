@@ -95,4 +95,13 @@
         WHERE supplier_id = #{supplierId} AND is_deleted = 0
     </select>
 
+    <!-- 批量按电话查询（批量导入查重用） -->
+    <select id="selectByPhones" resultMap="BaseResultMap">
+        SELECT * FROM supplier WHERE is_deleted = 0
+        AND phone IN
+        <foreach collection="phones" item="p" open="(" separator="," close=")">
+            #{p}
+        </foreach>
+    </select>
+
 </mapper>

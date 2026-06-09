@@ -107,4 +107,8 @@
         DELETE FROM purchase_main WHERE status = 'CANCELLED' AND deadline_time <![CDATA[ < ]]> #{now}
     </delete>
 
+    <update id="verify">
+        UPDATE purchase_main SET status = 'HISTORY' WHERE id = #{id} AND status = 'DRAFT'
+    </update>
+
 </mapper>

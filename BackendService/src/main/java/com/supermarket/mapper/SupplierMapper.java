@@ -38,4 +38,7 @@ public interface SupplierMapper {
 
     // 查询关联的商品数量（用于删除前检查）
     int countGoodsBySupplierId(@Param("supplierId") Integer supplierId);
+
+    // 批量查询（用于批量导入时查重，一次IN查询替代N次单查）
+    List<Supplier> selectByPhones(@Param("phones") List<String> phones);
 }

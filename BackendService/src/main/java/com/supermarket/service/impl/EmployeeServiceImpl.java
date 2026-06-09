@@ -1,7 +1,9 @@
 package com.supermarket.service.impl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +29,36 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public void register(Employee employee) {
+        validateEmployee(employee);
+        if (employee.getPhone() == null || employee.getPhone().isEmpty()) {
+            log.warn("[注册失败] 手机号为空");
+            throw BusinessException.paramError("手机号不能为空");
+        }
+        if (employee.getPassword() == null || employee.getPassword().isEmpty()) {
+            log.warn("[注册失败] 密码为空");
+            throw BusinessException.paramError("密码不能为空");
+        }
+
+        Employee existing = employeeMapper.selectByPhone(employee.getPhone());
+        if (existing != null) {
+            log.warn("[注册失败] 手机号已存在 phone={}", employee.getPhone());
+            throw BusinessException.duplicate("手机号已注册");
+        }
+
+        employee.setPassword(PasswordUtil.encode(employee.getPassword()));
+        employee.setLevel(1);
+        employee.setIsApproved(0);
+        int rows = employeeMapper.insert(employee);
+        if (rows == 0) {
+            log.error("[注册失败] 数据库插入返回0");
+            throw BusinessException.operationFailed("注册失败");
+        }
+
+        log.info("[注册成功] id={}, phone={}, 等待审批", employee.getId(), employee.getPhone());
+    }
+
+    @Override
     public void add(Employee employee) {
         validateEmployee(employee);
 
@@ -46,6 +78,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (employee.getLevel() == null) {
             employee.setLevel(1);
         }
+        employee.setIsApproved(1);
 
         int rows = employeeMapper.insert(employee);
         if (rows == 0) {
@@ -66,10 +99,22 @@ public class EmployeeServiceImpl implements EmployeeService {
 
         log.info("[批量导入员工开始] 总数={}", employees.size());
 
+        // 一遍循环完成：校验 + 设默认值
         List<String> errors = new ArrayList<>();
+
         for (int i = 0; i < employees.size(); i++) {
+            Employee emp = employees.get(i);
             try {
-                validateEmployee(employees.get(i));
+                validateEmployee(emp);
+
+                if (emp.getPassword() == null || emp.getPassword().isEmpty()) {
+                    emp.setPassword("123456");
+                }
+                emp.setPassword(PasswordUtil.encode(emp.getPassword()));
+                if (emp.getLevel() == null) {
+                    emp.setLevel(1);
+                }
+                emp.setIsApproved(1);
             } catch (BusinessException e) {
                 errors.add(String.format("第%d行: %s", i + 1, e.getMessage()));
             }
@@ -78,16 +123,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (!errors.isEmpty()) {
             log.warn("[批量导入员工失败] 校验不通过 errors={}", errors);
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
-        }
-
-        for (Employee emp : employees) {
-            if (emp.getPassword() == null || emp.getPassword().isEmpty()) {
-                emp.setPassword("123456");
-            }
-            emp.setPassword(PasswordUtil.encode(emp.getPassword()));
-            if (emp.getLevel() == null) {
-                emp.setLevel(1);
-            }
         }
 
         try {
@@ -198,6 +233,43 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    public Result<List<Employee>> getPending(Integer page, Integer size) {
+        if (page == null || page < 1) page = 1;
+        if (size == null || size < 1) size = 10;
+        int offset = (page - 1) * size;
+        List<Employee> list = employeeMapper.selectPending(offset, size);
+        int total = employeeMapper.countPending();
+        for (Employee emp : list) {
+            emp.setPassword(null);
+        }
+        return Result.success("查询成功", list, total);
+    }
+
+    @Override
+    public void approve(Integer id) {
+        if (id == null || id <= 0) {
+            throw BusinessException.paramError("员工ID不合法");
+        }
+        int rows = employeeMapper.approve(id);
+        if (rows == 0) {
+            throw BusinessException.notFound("员工");
+        }
+        log.info("[审批通过] employeeId={}", id);
+    }
+
+    @Override
+    public void reject(Integer id) {
+        if (id == null || id <= 0) {
+            throw BusinessException.paramError("员工ID不合法");
+        }
+        int rows = employeeMapper.reject(id);
+        if (rows == 0) {
+            throw BusinessException.notFound("员工");
+        }
+        log.info("[审批拒绝] employeeId={}", id);
+    }
+
+    @Override
     public Employee login(String phone, String password) {
         if (phone == null || phone.isEmpty()) {
             log.warn("[登录失败] 手机号为空");
@@ -217,6 +289,11 @@ public class EmployeeServiceImpl implements EmployeeService {
         if (!PasswordUtil.matches(password, employee.getPassword())) {
             log.warn("[登录失败] 密码错误 phone={}", phone);
             throw new BusinessException("密码错误");
+        }
+
+        if (employee.getIsApproved() != null && employee.getIsApproved() == 0) {
+            log.warn("[登录失败] 账号未审批 phone={}", phone);
+            throw new BusinessException("您的账号正在等待管理员审批");
         }
 
         employee.setPassword(null);

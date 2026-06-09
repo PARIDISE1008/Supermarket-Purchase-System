@@ -1,7 +1,9 @@
 package com.supermarket.service.impl;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +56,19 @@ public class SupplierServiceImpl implements SupplierService {
 
         log.info("[批量导入开始] 总数={}", suppliers.size());
 
+        // 一遍循环完成：校验 + 内部查重 + 收集电话
         List<String> errors = new ArrayList<>();
+        Set<String> phoneSet = new HashSet<>();
+        List<String> allPhones = new ArrayList<>();
+
         for (int i = 0; i < suppliers.size(); i++) {
+            Supplier s = suppliers.get(i);
             try {
-                validateSupplier(suppliers.get(i));
+                validateSupplier(s);
+                if (!phoneSet.add(s.getPhone())) {
+                    errors.add(String.format("第%d行: 电话 %s 在导入数据中重复", i + 1, s.getPhone()));
+                }
+                allPhones.add(s.getPhone());
             } catch (BusinessException e) {
                 errors.add(String.format("第%d行: %s", i + 1, e.getMessage()));
             }
@@ -68,22 +79,11 @@ public class SupplierServiceImpl implements SupplierService {
             throw BusinessException.paramError("数据校验失败：" + String.join("; ", errors));
         }
 
-        for (int i = 0; i < suppliers.size(); i++) {
-            for (int j = i + 1; j < suppliers.size(); j++) {
-                if (suppliers.get(i).getPhone().equals(suppliers.get(j).getPhone())) {
-                    log.warn("[批量导入失败] 内部电话重复 行{}和行{}", i + 1, j + 1);
-                    throw BusinessException.paramError(
-                            String.format("第%d行和第%d行电话重复", i + 1, j + 1));
-                }
-            }
-        }
-
-        for (Supplier supplier : suppliers) {
-            Supplier existing = supplierMapper.selectByPhone(supplier.getPhone());
-            if (existing != null) {
-                log.warn("[批量导入失败] 电话已存在 phone={}", supplier.getPhone());
-                throw BusinessException.duplicate("电话 " + supplier.getPhone());
-            }
+        // 一次 IN 查询替代 N 次单查
+        List<Supplier> dbExists = supplierMapper.selectByPhones(allPhones);
+        if (!dbExists.isEmpty()) {
+            log.warn("[批量导入失败] 电话已存在 phone={}", dbExists.get(0).getPhone());
+            throw BusinessException.duplicate("电话 " + dbExists.get(0).getPhone());
         }
 
         try {

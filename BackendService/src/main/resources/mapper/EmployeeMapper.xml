@@ -11,20 +11,21 @@
         <result column="salary" property="salary"/>
         <result column="remark" property="remark"/>
         <result column="is_deleted" property="isDeleted"/>
+        <result column="is_approved" property="isApproved"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
     
     <insert id="insert" parameterType="com.supermarket.entity.Employee" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO employee (name, password, level, phone, salary, remark)
-        VALUES (#{name}, #{password}, #{level}, #{phone}, #{salary}, #{remark})
+        INSERT INTO employee (name, password, level, phone, salary, remark, is_approved)
+        VALUES (#{name}, #{password}, #{level}, #{phone}, #{salary}, #{remark}, #{isApproved})
     </insert>
     
     <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO employee (name, password, level, phone, salary, remark) VALUES
+        INSERT INTO employee (name, password, level, phone, salary, remark, is_approved) VALUES
         <foreach collection="list" item="item" separator=",">
             (#{item.name}, #{item.password}, #{item.level},
-             #{item.phone}, #{item.salary}, #{item.remark})
+             #{item.phone}, #{item.salary}, #{item.remark}, #{item.isApproved})
         </foreach>
     </insert>
     
@@ -38,7 +39,7 @@
     
     <select id="selectPage" resultMap="BaseResultMap">
         SELECT * FROM employee
-        WHERE is_deleted = 0
+        WHERE is_deleted = 0 AND is_approved = 1
         <if test="name != null and name != ''">
             AND name LIKE CONCAT('%', #{name}, '%')
         </if>
@@ -51,7 +52,7 @@
     
     <select id="count" resultType="int">
         SELECT COUNT(*) FROM employee
-        WHERE is_deleted = 0
+        WHERE is_deleted = 0 AND is_approved = 1
         <if test="name != null and name != ''">
             AND name LIKE CONCAT('%', #{name}, '%')
         </if>
@@ -77,4 +78,24 @@
     <select id="countPurchaseByEmployeeId" resultType="int">
         SELECT COUNT(*) FROM purchase_main WHERE employee_id = #{employeeId}
     </select>
+
+    <select id="selectPending" resultMap="BaseResultMap">
+        SELECT * FROM employee
+        WHERE is_deleted = 0 AND is_approved = 0
+        ORDER BY id DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPending" resultType="int">
+        SELECT COUNT(*) FROM employee
+        WHERE is_deleted = 0 AND is_approved = 0
+    </select>
+
+    <update id="approve">
+        UPDATE employee SET is_approved = 1 WHERE id = #{id}
+    </update>
+
+    <update id="reject">
+        DELETE FROM employee WHERE id = #{id} AND is_approved = 0
+    </update>
 </mapper>

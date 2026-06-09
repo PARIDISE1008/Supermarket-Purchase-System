@@ -4,8 +4,13 @@ COLLATE utf8mb4_unicode_ci;
 
 USE supermarket_db;
 
---供应商表
+DROP TABLE IF EXISTS purchase_detail;
+DROP TABLE IF EXISTS purchase_main;
+DROP TABLE IF EXISTS member;
+DROP TABLE IF EXISTS employee;
+DROP TABLE IF EXISTS goods;
 DROP TABLE IF EXISTS supplier;
+
 CREATE TABLE supplier(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '供应商编号',
     name VARCHAR(100) NOT NULL COMMENT '供应商名称',
@@ -25,8 +30,8 @@ CREATE TABLE supplier(
     INDEX idx_supplier_is_deleted(is_deleted)
 )ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '供应商表';
 
---商品表
-DROP TABLE IF EXISTS goods;
+
+
 CREATE TABLE goods(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '商品编号',
     name VARCHAR(100) NOT NULL COMMENT '商品名称',
@@ -50,8 +55,8 @@ CREATE TABLE goods(
         ON UPDATE CASCADE
 )ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '商品表';
 
---员工表
-DROP TABLE IF EXISTS employee;
+
+
 CREATE TABLE employee(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '员工编号',
     name VARCHAR(50) NOT NULL COMMENT '姓名',
@@ -62,17 +67,19 @@ CREATE TABLE employee(
     salary DECIMAL(10,2) COMMENT '工资',
     remark VARCHAR(500) COMMENT '备注',
     is_deleted TINYINT NOT NULL DEFAULT 0 COMMENT '是否逻辑删除(0-在职, 1-离职)',
+    is_approved TINYINT NOT NULL DEFAULT 0 COMMENT '审批状态(0-待审批, 1-已通过)',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
 
     CONSTRAINT uq_employee_phone UNIQUE KEY(phone),
     INDEX idx_employee_name(name),
     INDEX idx_employee_level(level),
-    INDEX idx_employee_is_deleted(is_deleted)
+    INDEX idx_employee_is_deleted(is_deleted),
+    INDEX idx_employee_is_approved(is_approved)
 )ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '员工表';
 
---会员表
-DROP TABLE IF EXISTS member;
+
+
 CREATE TABLE member(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '会员编号',
     name VARCHAR(50) NOT NULL COMMENT '会员姓名',
@@ -93,8 +100,7 @@ CREATE TABLE member(
     INDEX idx_member_points(points)
 )ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '会员表';
 
---采购主表
-DROP TABLE IF EXISTS purchase_main;
+
 CREATE TABLE purchase_main(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '内部主键',
     order_no VARCHAR(50) NOT NULL COMMENT '采购清单号(格式:PO-YYYYMMDD-XXX)',
@@ -120,8 +126,7 @@ CREATE TABLE purchase_main(
         ON UPDATE CASCADE
 )ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '采购主表';
 
---采购明细表
-DROP TABLE IF EXISTS purchase_detail;
+
 CREATE TABLE purchase_detail(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '采购明细号',
     purchase_main_id INT NOT NULL COMMENT '采购主表ID',

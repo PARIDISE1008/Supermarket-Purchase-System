@@ -35,7 +35,7 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final PurchaseDetailMapper detailMapper;
     private final GoodsMapper goodsMapper;
 
-    // 第2层：30秒限流（employeeId → 上次提交时间）
+    // 第2层：5秒限流（employeeId → 上次提交时间）
     private final Map<Integer, Long> lastSubmitTime = new ConcurrentHashMap<>();
 
     // 第3层：订单号防重复（orderNo → 是否已使用，30分钟过期）
@@ -74,10 +74,18 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw BusinessException.paramError("预订单号不能为空");
         }
 
-        // ========== 第2层：30秒限流 ==========
+        // ========== 校验采购明细商品ID ==========
+        for (int i = 0; i < dto.getDetails().size(); i++) {
+            if (dto.getDetails().get(i).getGoodsId() == null) {
+                log.warn("[提交采购失败] 第{}行商品ID为空", i + 1);
+                throw BusinessException.paramError("第" + (i + 1) + "行商品不能为空");
+            }
+        }
+
+        // ========== 第2层：5秒限流 ==========
         Long lastTime = lastSubmitTime.get(dto.getEmployeeId());
-        if (lastTime != null && System.currentTimeMillis() - lastTime < 30000) {
-            long remain = 30 - (System.currentTimeMillis() - lastTime) / 1000;
+        if (lastTime != null && System.currentTimeMillis() - lastTime < 5000) {
+            long remain = 5 - (System.currentTimeMillis() - lastTime) / 1000;
             log.warn("[限流拦截] employeeId={}, 还需等待{}秒", dto.getEmployeeId(), remain);
             throw new BusinessException(429, "操作太频繁，请" + remain + "秒后重试");
         }
@@ -160,8 +168,8 @@ public class PurchaseServiceImpl implements PurchaseService {
             orderNo = generateFinalOrderNo();
             log.info("[采购新建] 创建新草稿 employeeId={}, orderNo={}", dto.getEmployeeId(), orderNo);
 
-            // 计算截止时间（今天17:00）
-            LocalDateTime deadline = LocalDateTime.of(LocalDate.now(), LocalTime.of(17, 0));
+            // 计算截止时间（创建后1小时）
+            LocalDateTime deadline = purchaseTime.plusHours(1);
 
             PurchaseMain main = new PurchaseMain();
             main.setOrderNo(orderNo);
@@ -227,9 +235,7 @@ public class PurchaseServiceImpl implements PurchaseService {
         return Result.success(main);
     }
 
-    /**
-     * 查询订单的明细列表（单独接口）
-     */
+    @Override
     public Result<List<PurchaseDetail>> getDetails(Integer orderId) {
         List<PurchaseDetail> details = detailMapper.selectByMainId(orderId);
         return Result.success(details);
@@ -287,6 +293,26 @@ public class PurchaseServiceImpl implements PurchaseService {
 
         log.info("[恢复订单成功] orderId={}, orderNo={}", orderId, main.getOrderNo());
         return Result.success("订单已恢复", null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result<Void> verify(Integer orderId, Integer adminId) {
+        PurchaseMain main = mainMapper.selectById(orderId);
+        if (main == null) {
+            throw BusinessException.notFound("采购单");
+        }
+        if (!main.isDraft()) {
+            throw new BusinessException("只有草稿状态的订单可以核实");
+        }
+
+        int rows = mainMapper.verify(orderId);
+        if (rows == 0) {
+            throw BusinessException.operationFailed("核实失败");
+        }
+
+        log.info("[核实订单成功] orderId={}, orderNo={}, adminId={}", orderId, main.getOrderNo(), adminId);
+        return Result.success("订单已核实", null);
     }
 
     /**

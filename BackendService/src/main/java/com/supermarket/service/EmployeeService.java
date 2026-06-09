@@ -21,4 +21,16 @@ public interface EmployeeService {
 
     /** 登录（根据手机号+密码验证） */
     Employee login(String phone, String password);
+
+    /** 用户自行注册（is_approved=0，待审批） */
+    void register(Employee employee);
+
+    /** 查询待审批员工列表 */
+    Result<List<Employee>> getPending(Integer page, Integer size);
+
+    /** 通过审批 */
+    void approve(Integer id);
+
+    /** 拒绝注册 */
+    void reject(Integer id);
 }

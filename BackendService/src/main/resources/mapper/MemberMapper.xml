@@ -79,4 +79,12 @@
         UPDATE member SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
     </update>
 
+    <select id="selectByPhones" resultMap="BaseResultMap">
+        SELECT * FROM member WHERE is_deleted = 0
+        AND phone IN
+        <foreach collection="phones" item="p" open="(" separator="," close=")">
+            #{p}
+        </foreach>
+    </select>
+
 </mapper>

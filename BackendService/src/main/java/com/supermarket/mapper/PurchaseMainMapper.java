@@ -65,4 +65,9 @@ public interface PurchaseMainMapper {
      * 物理删除已作废且过期的订单
      */
     int deleteCancelledExpired(@Param("now") LocalDateTime now);
+
+    /**
+     * 管理员核实：DRAFT → HISTORY
+     */
+    int verify(@Param("id") Integer id);
 }

@@ -30,6 +30,7 @@ public class Employee {
     private String remark;
 
     private Integer isDeleted;
+    private Integer isApproved;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -58,6 +59,9 @@ public class Employee {
 
     public Integer getIsDeleted() { return isDeleted; }
     public void setIsDeleted(Integer isDeleted) { this.isDeleted = isDeleted; }
+
+    public Integer getIsApproved() { return isApproved; }
+    public void setIsApproved(Integer isApproved) { this.isApproved = isApproved; }
 
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }

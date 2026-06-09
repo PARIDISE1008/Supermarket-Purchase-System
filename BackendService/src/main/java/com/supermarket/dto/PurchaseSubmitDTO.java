@@ -1,6 +1,3 @@
-// ============================================
-// 路径: com/supermarket/dto/PurchaseSubmitDTO.java
-// ============================================
 package com.supermarket.dto;
 
 import java.util.List;

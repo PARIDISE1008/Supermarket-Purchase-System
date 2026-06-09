@@ -17,7 +17,6 @@ import com.supermarket.dto.PurchaseSubmitDTO;
 import com.supermarket.entity.PurchaseDetail;
 import com.supermarket.entity.PurchaseMain;
 import com.supermarket.service.PurchaseService;
-import com.supermarket.service.impl.PurchaseServiceImpl;
 
 @RestController
 @RequestMapping("/api/purchase")
@@ -25,9 +24,6 @@ public class PurchaseController {
 
     @Autowired
     private PurchaseService purchaseService;
-
-    @Autowired
-    private PurchaseServiceImpl purchaseServiceImpl;
 
     /**
      * 预生成订单号
@@ -70,7 +66,7 @@ public class PurchaseController {
      */
     @GetMapping("/{id}/details")
     public Result<List<PurchaseDetail>> getDetails(@PathVariable Integer id) {
-        return purchaseServiceImpl.getDetails(id);
+        return purchaseService.getDetails(id);
     }
 
     /**
@@ -87,5 +83,13 @@ public class PurchaseController {
     @PutMapping("/restore/{id}")
     public Result<Void> restore(@PathVariable Integer id, @RequestParam Integer employeeId) {
         return purchaseService.restore(id, employeeId);
+    }
+
+    /**
+     * 管理员核实订单（DRAFT → HISTORY）
+     */
+    @PutMapping("/verify/{id}")
+    public Result<Void> verify(@PathVariable Integer id, @RequestParam Integer adminId) {
+        return purchaseService.verify(id, adminId);
     }
 }
