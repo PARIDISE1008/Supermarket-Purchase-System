@@ -86,7 +86,7 @@
 
     <!-- 逻辑删除 -->
     <update id="deleteById">
-        UPDATE supplier SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+        UPDATE supplier SET phone = CONCAT('del_', id, '_', phone), is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
     </update>
 
     <!-- 统计关联商品数量 -->

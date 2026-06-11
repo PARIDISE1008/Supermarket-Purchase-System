@@ -72,7 +72,7 @@
     </update>
     
     <update id="deleteById">
-        UPDATE employee SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+        UPDATE employee SET phone = CONCAT('del_', id, '_', phone), is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
     </update>
     
     <select id="countPurchaseByEmployeeId" resultType="int">

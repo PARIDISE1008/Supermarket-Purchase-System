@@ -76,7 +76,7 @@
     </update>
 
     <update id="deleteById">
-        UPDATE member SET is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
+        UPDATE member SET phone = CONCAT('del_', id, '_', phone), is_deleted = 1 WHERE id = #{id} AND is_deleted = 0
     </update>
 
     <select id="selectByPhones" resultMap="BaseResultMap">
