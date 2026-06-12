@@ -7,6 +7,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void register(Employee employee) {
         validateEmployee(employee);
         if (employee.getPhone() == null || employee.getPhone().isEmpty()) {
@@ -59,6 +62,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void add(Employee employee) {
         validateEmployee(employee);
 
@@ -90,6 +94,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Employee> employees) {
         if (employees == null || employees.isEmpty()) {
@@ -135,6 +140,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @Cacheable(value = "employees", key = "'search:' + (#name != null ? #name : '~') + ':' + (#level != null ? #level : '~') + ':' + #page + ':' + #size")
     public Result<List<Employee>> search(String name, Integer level, Integer page, Integer size) {
         if (page == null || page < 1) {
             page = 1;
@@ -156,6 +162,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @Cacheable(value = "employees", key = "#id")
     public Employee getById(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[查询员工失败] 非法ID id={}", id);
@@ -173,6 +180,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void update(Employee employee) {
         if (employee.getId() == null || employee.getId() <= 0) {
             log.warn("[修改员工失败] 非法ID id={}", employee.getId());
@@ -204,6 +212,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void delete(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[删除员工失败] 非法ID id={}", id);
@@ -246,6 +255,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void approve(Integer id) {
         if (id == null || id <= 0) {
             throw BusinessException.paramError("员工ID不合法");
@@ -258,6 +268,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     }
 
     @Override
+    @CacheEvict(value = "employees", allEntries = true)
     public void reject(Integer id) {
         if (id == null || id <= 0) {
             throw BusinessException.paramError("员工ID不合法");

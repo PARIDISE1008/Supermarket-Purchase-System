@@ -7,6 +7,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public void add(Supplier supplier) {
         validateSupplier(supplier);
 
@@ -47,6 +50,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Supplier> suppliers) {
         if (suppliers == null || suppliers.isEmpty()) {
@@ -96,6 +100,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @Cacheable(value = "suppliers", key = "'search:' + (#name != null ? #name : '~') + ':' + #page + ':' + #size")
     public Result<List<Supplier>> search(String name, Integer page, Integer size) {
         if (page == null || page < 1) {
             page = 1;
@@ -113,6 +118,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @Cacheable(value = "suppliers", key = "#id")
     public Supplier getById(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[查询供应商失败] 非法ID id={}", id);
@@ -129,6 +135,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public void update(Supplier supplier) {
         if (supplier.getId() == null || supplier.getId() <= 0) {
             log.warn("[修改供应商失败] 非法ID id={}", supplier.getId());
@@ -158,6 +165,7 @@ public class SupplierServiceImpl implements SupplierService {
     }
 
     @Override
+    @CacheEvict(value = "suppliers", allEntries = true)
     public void delete(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[删除供应商失败] 非法ID id={}", id);

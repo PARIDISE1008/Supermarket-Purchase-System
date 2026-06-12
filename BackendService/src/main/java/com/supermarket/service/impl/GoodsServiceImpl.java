@@ -8,6 +8,8 @@ import com.supermarket.mapper.SupplierMapper;
 import com.supermarket.service.GoodsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @CacheEvict(value = "goods", allEntries = true)
     public void add(Goods goods) {
         validateGoods(goods);
 
@@ -53,6 +56,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @CacheEvict(value = "goods", allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Goods> goodsList) {
         if (goodsList == null || goodsList.isEmpty()) {
@@ -89,6 +93,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @Cacheable(value = "goods", key = "'search:' + (#name != null ? #name : '~') + ':' + (#supplierId != null ? #supplierId : '~') + ':' + #page + ':' + #size")
     public Result<List<Goods>> search(String name, Integer supplierId, Integer page, Integer size) {
         if (page == null || page < 1) {
             page = 1;
@@ -106,6 +111,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @Cacheable(value = "goods", key = "#id")
     public Goods getById(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[查询商品失败] 非法ID id={}", id);
@@ -122,6 +128,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @CacheEvict(value = "goods", allEntries = true)
     public void update(Goods goods) {
         if (goods.getId() == null || goods.getId() <= 0) {
             log.warn("[修改商品失败] 非法ID id={}", goods.getId());
@@ -156,6 +163,7 @@ public class GoodsServiceImpl implements GoodsService {
     }
 
     @Override
+    @CacheEvict(value = "goods", allEntries = true)
     public void delete(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[删除商品失败] 非法ID id={}", id);

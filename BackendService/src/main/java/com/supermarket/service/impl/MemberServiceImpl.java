@@ -8,6 +8,8 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @CacheEvict(value = "members", allEntries = true)
     public void add(Member member) {
         validateMember(member);
 
@@ -58,6 +61,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @CacheEvict(value = "members", allEntries = true)
     @Transactional(rollbackFor = Exception.class)
     public void batchImport(List<Member> members) {
         if (members == null || members.isEmpty()) {
@@ -118,6 +122,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Cacheable(value = "members", key = "'search:' + (#name != null ? #name : '~') + ':' + (#level != null ? #level : '~') + ':' + #page + ':' + #size")
     public Result<List<Member>> search(String name, Integer level, Integer page, Integer size) {
         if (page == null || page < 1) {
             page = 1;
@@ -135,6 +140,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @Cacheable(value = "members", key = "#id")
     public Member getById(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[查询会员失败] 非法ID id={}", id);
@@ -151,6 +157,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @CacheEvict(value = "members", allEntries = true)
     public void update(Member member) {
         if (member.getId() == null || member.getId() <= 0) {
             log.warn("[修改会员失败] 非法ID id={}", member.getId());
@@ -180,6 +187,7 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    @CacheEvict(value = "members", allEntries = true)
     public void delete(Integer id) {
         if (id == null || id <= 0) {
             log.warn("[删除会员失败] 非法ID id={}", id);
