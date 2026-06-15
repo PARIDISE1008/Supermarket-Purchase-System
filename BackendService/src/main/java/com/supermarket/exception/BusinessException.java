@@ -33,10 +33,6 @@ public class BusinessException extends RuntimeException {
         return new BusinessException(409, fieldName + "已存在");
     }
 
-    public static BusinessException unauthorized(String message) {
-        return new BusinessException(401, message);
-    }
-
     public static BusinessException operationFailed(String message) {
         return new BusinessException(500, message);
     }

@@ -96,6 +96,6 @@
     </update>
 
     <update id="reject">
-        DELETE FROM employee WHERE id = #{id} AND is_approved = 0
+        UPDATE employee SET is_deleted = 1 WHERE id = #{id} AND is_approved = 0
     </update>
 </mapper>

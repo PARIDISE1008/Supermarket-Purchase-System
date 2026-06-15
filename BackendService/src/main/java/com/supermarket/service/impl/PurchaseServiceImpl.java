@@ -39,7 +39,9 @@ public class PurchaseServiceImpl implements PurchaseService {
     private final Map<Integer, Long> lastSubmitTime = new ConcurrentHashMap<>();
 
     // 第3层：订单号防重复（orderNo → 是否已使用，30分钟过期）
-    private final Map<String, Boolean> usedOrderNos = new ConcurrentHashMap<>();
+    private final Map<String, Long> usedOrderNos = new ConcurrentHashMap<>();
+
+    private static final long ORDER_NO_EXPIRY_MS = 30 * 60 * 1000L;
 
     public PurchaseServiceImpl(PurchaseMainMapper mainMapper,
             PurchaseDetailMapper detailMapper,
@@ -51,8 +53,9 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     @Override
     public Result<String> generateOrderNo() {
+        cleanupExpiredOrderNos();
         String orderNo = "PRE-" + System.currentTimeMillis();
-        usedOrderNos.put(orderNo, false);
+        usedOrderNos.put(orderNo, System.currentTimeMillis());
         log.debug("[预生成订单号] orderNo={}", orderNo);
         return Result.success(orderNo);
     }
@@ -91,12 +94,13 @@ public class PurchaseServiceImpl implements PurchaseService {
         }
 
         // ========== 第3层：订单号防重复 ==========
-        Boolean used = usedOrderNos.get(dto.getPreOrderNo());
-        if (used == null || used) {
-            log.warn("[订单号重复] orderNo={}", dto.getPreOrderNo());
-            throw new BusinessException("订单号已使用或无效，请刷新页面重新提交");
+        cleanupExpiredOrderNos();
+        Long submitTime = usedOrderNos.get(dto.getPreOrderNo());
+        if (submitTime == null) {
+            log.warn("[订单号无效] orderNo={}", dto.getPreOrderNo());
+            throw new BusinessException("订单号无效，请刷新页面重新提交");
         }
-        usedOrderNos.put(dto.getPreOrderNo(), true);
+        usedOrderNos.remove(dto.getPreOrderNo());
 
         // ========== 计算总价（不信任前端） ==========
         List<PurchaseDetail> details = new ArrayList<>();
@@ -227,10 +231,6 @@ public class PurchaseServiceImpl implements PurchaseService {
             throw BusinessException.notFound("采购单");
         }
 
-        List<PurchaseDetail> details = detailMapper.selectByMainId(orderId);
-        // 这里需要在 PurchaseMain 加一个 details 字段，课设简化：直接返回 main，前端再单独调接口查明细
-        // 或者直接在 Result 里多返回一个字段
-
         log.debug("[查询采购详情] orderId={}, orderNo={}", orderId, main.getOrderNo());
         return Result.success(main);
     }
@@ -322,5 +322,11 @@ public class PurchaseServiceImpl implements PurchaseService {
         String dateStr = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
         long suffix = System.currentTimeMillis() % 100000;
         return String.format("PO-%s-%05d", dateStr, suffix);
+    }
+
+    private void cleanupExpiredOrderNos() {
+        long now = System.currentTimeMillis();
+        usedOrderNos.entrySet().removeIf(entry ->
+                now - entry.getValue() > ORDER_NO_EXPIRY_MS);
     }
 }

@@ -40,10 +40,4 @@
         DELETE FROM purchase_detail WHERE purchase_main_id = #{purchaseMainId}
     </delete>
 
-    <update id="update" parameterType="com.supermarket.entity.PurchaseDetail">
-        UPDATE purchase_detail
-        SET quantity = #{quantity}, total_price = #{totalPrice}
-        WHERE id = #{id}
-    </update>
-
 </mapper>

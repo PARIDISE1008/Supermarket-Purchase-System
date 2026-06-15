@@ -36,12 +36,6 @@ public interface PurchaseMainMapper {
     int update(PurchaseMain main);
 
     /**
-     * 更新状态
-     */
-    int updateStatus(@Param("id") Integer id,
-            @Param("status") String status);
-
-    /**
      * 作废：DRAFT → CANCELLED
      */
     int cancel(@Param("id") Integer id);

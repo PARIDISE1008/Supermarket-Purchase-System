@@ -16,6 +16,4 @@ public interface PurchaseDetailMapper {
     List<PurchaseDetail> selectByMainId(@Param("purchaseMainId") Integer purchaseMainId);
 
     int deleteByMainId(@Param("purchaseMainId") Integer purchaseMainId);
-
-    int update(PurchaseDetail detail);
 }

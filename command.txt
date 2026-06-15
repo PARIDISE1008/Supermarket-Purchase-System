@@ -11,3 +11,5 @@ http://localhost:3000
 
 13800001001
 13800001002
+
+sudo systemctl start redis（启动redis）*

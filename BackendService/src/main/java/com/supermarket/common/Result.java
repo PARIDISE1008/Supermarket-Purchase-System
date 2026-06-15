@@ -6,8 +6,6 @@ public class Result<T> {
     private T data;
     private Integer total;
 
-    private Result() {}
-
     private Result(Integer code, String message, T data) {
         this.code = code;
         this.message = message;
@@ -22,10 +20,6 @@ public class Result<T> {
     public void setData(T data) { this.data = data; }
     public Integer getTotal() { return total; }
     public void setTotal(Integer total) { this.total = total; }
-
-    public static <T> Result<T> success() {
-        return new Result<>(200, "操作成功", null);
-    }
 
     public static <T> Result<T> success(T data) {
         return new Result<>(200, "操作成功", data);
@@ -51,14 +45,6 @@ public class Result<T> {
 
     public static <T> Result<T> paramError(String message) {
         return new Result<>(400, "参数错误：" + message, null);
-    }
-
-    public static <T> Result<T> notFound(String message) {
-        return new Result<>(404, message, null);
-    }
-
-    public static <T> Result<T> unauthorized(String message) {
-        return new Result<>(401, message, null);
     }
 
     public static <T> Result<T> systemError() {
