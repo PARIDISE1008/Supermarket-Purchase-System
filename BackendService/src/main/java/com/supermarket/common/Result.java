@@ -6,6 +6,8 @@ public class Result<T> {
     private T data;
     private Integer total;
 
+    private Result() {}
+
     private Result(Integer code, String message, T data) {
         this.code = code;
         this.message = message;
