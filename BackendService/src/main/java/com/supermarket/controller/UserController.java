@@ -1,13 +1,13 @@
-// ============================================
-// 路径: com/supermarket/controller/UserController.java
-// ============================================
 package com.supermarket.controller;
 
 import com.supermarket.common.Result;
 import com.supermarket.entity.Employee;
 import com.supermarket.entity.Goods;
+import com.supermarket.entity.PurchaseDetail;
+import com.supermarket.entity.PurchaseMain;
 import com.supermarket.service.EmployeeService;
 import com.supermarket.service.GoodsService;
+import com.supermarket.service.PurchaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +25,9 @@ public class UserController {
 
     @Autowired
     private GoodsService goodsService;
+
+    @Autowired
+    private PurchaseService purchaseService;
 
     /**
      * 查看自己的员工信息 GET /api/user/info?employeeId=3
@@ -53,5 +56,23 @@ public class UserController {
     public Result<Goods> getGoodsDetail(@PathVariable Integer id) {
         Goods goods = goodsService.getById(id);
         return Result.success(goods);
+    }
+
+    /**
+     * 查询自己的采购单列表 GET /api/user/purchase?employeeId=3&page=1
+     */
+    @GetMapping("/purchase")
+    public Result<List<PurchaseMain>> queryPurchase(
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return purchaseService.listMyOrders(null, "HISTORY", page, size);
+    }
+
+    /**
+     * 查看采购单详情（含明细） GET /api/user/purchase/1
+     */
+    @GetMapping("/purchase/{id}")
+    public Result<PurchaseMain> getPurchaseDetail(@PathVariable Integer id) {
+        return purchaseService.getDetail(id);
     }
 }

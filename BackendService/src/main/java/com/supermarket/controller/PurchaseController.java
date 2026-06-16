@@ -46,7 +46,7 @@ public class PurchaseController {
      */
     @GetMapping("/my")
     public Result<List<PurchaseMain>> listMyOrders(
-            @RequestParam Integer employeeId,
+            @RequestParam(required = false) Integer employeeId,
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "10") Integer size) {

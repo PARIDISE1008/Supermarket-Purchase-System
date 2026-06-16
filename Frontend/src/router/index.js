@@ -30,7 +30,8 @@ const routes = [
     meta: { requiresAuth: true, role: 1 },
     children: [
       { path: 'info', name: 'UserInfo', component: () => import('../views/user/UserInfo.vue') },
-      { path: 'goods', name: 'UserGoods', component: () => import('../views/user/UserGoods.vue') }
+      { path: 'goods', name: 'UserGoods', component: () => import('../views/user/UserGoods.vue') },
+      { path: 'purchase', name: 'UserPurchase', component: () => import('../views/user/UserPurchase.vue') }
     ]
   }
 ]

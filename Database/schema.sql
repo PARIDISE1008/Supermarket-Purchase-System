@@ -60,8 +60,8 @@ CREATE TABLE goods(
 CREATE TABLE employee(
     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '员工编号',
     name VARCHAR(50) NOT NULL COMMENT '姓名',
-    password VARCHAR(255) NOT NULL DEFAULT '$2a$10$EixZaYVK1fsbw1ZfbX3OXe.P0jFGnVFSqOGqG6jQKq5zQYkDVGZxS'
-        COMMENT '密码(BCrypt加密, 默认密码123456)',
+    password VARCHAR(255) NOT NULL DEFAULT 'jZae727K08KaOmKSgOaGzww/XVqGr/PKEgIMkjrcbJI='
+        COMMENT '密码(SHA-256+Base64加密, 默认密码123456)',
     level TINYINT DEFAULT 1 COMMENT '级别(1-普通员工, 2-管理员)',
     phone VARCHAR(20) COMMENT '电话',
     salary DECIMAL(10,2) COMMENT '工资',

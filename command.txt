@@ -13,3 +13,5 @@ http://localhost:3000
 13800001002
 
 sudo systemctl start redis（启动redis）*
+
+同步更新一下日志6.15.md和报告（报告保留原有的描述，修改与实际项目不符的地方）

@@ -157,7 +157,9 @@ function statusLabel(s) {
 async function fetchData() {
   loading.value = true
   try {
-    const res = await purchaseApi.listMyOrders({ employeeId: user.id, status: activeTab.value, page: page.value, size: size.value })
+    const params = { status: activeTab.value, page: page.value, size: size.value }
+    if (activeTab.value !== 'HISTORY') params.employeeId = user.id
+    const res = await purchaseApi.listMyOrders(params)
     tableData.value = res.data || []
     total.value = res.total || 0
   } finally { loading.value = false }

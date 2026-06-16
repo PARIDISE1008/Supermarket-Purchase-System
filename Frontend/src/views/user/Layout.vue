@@ -11,6 +11,10 @@
           <el-icon><Goods /></el-icon>
           <span>商品信息</span>
         </el-menu-item>
+        <el-menu-item index="/user/purchase">
+          <el-icon><ShoppingCart /></el-icon>
+          <span>采购信息</span>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>
@@ -28,7 +32,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { User, Goods } from '@element-plus/icons-vue'
+import { User, Goods, ShoppingCart } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const user = computed(() => JSON.parse(localStorage.getItem('user') || '{}'))

@@ -202,9 +202,6 @@ public class PurchaseServiceImpl implements PurchaseService {
 
     @Override
     public Result<List<PurchaseMain>> listMyOrders(Integer employeeId, String status, Integer page, Integer size) {
-        if (employeeId == null) {
-            throw BusinessException.paramError("员工ID不能为空");
-        }
         if (page == null || page < 1) {
             page = 1;
         }
